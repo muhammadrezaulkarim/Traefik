@@ -1,0 +1,94 @@
+version: "3.4"
+services:
+  blog:
+    image: ghost:1.22.7-alpine
+    networks:
+      - appnet
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints: 
+          - node.role == manager
+      labels:
+        - "traefik.backend.loadbalancer.stickiness=false"
+        - "traefik.backend.loadbalancer.swarm=false"
+        - "traefik.backend.loadbalancer.method=drr"
+        - "traefik.backend=blog"
+        - "traefik.docker.network=appnet"
+        - "traefik.frontend.entryPoints=http,https"
+        - "traefik.enable=true"
+        - "traefik.frontend.rule=PathPrefixStrip: /blog"
+        - "traefik.port=2368"
+  nginx:
+    image: nginx:1.15.0-alpine
+    networks:
+      - appnet
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints: 
+          - node.role == manager
+      labels:
+        - "traefik.backend.loadbalancer.stickiness=false"
+        - "traefik.backend.loadbalancer.swarm=false"
+        - "traefik.backend.loadbalancer.method=drr"
+        - "traefik.backend=nginx"
+        - "traefik.docker.network=appnet"
+        - "traefik.frontend.entryPoints=http,https"
+        - "traefik.enable=true"
+        - "traefik.frontend.rule=PathPrefixStrip: /nginx"
+        - "traefik.port=80"
+  apache:
+    image: httpd:2.4.33-alpine
+    networks:
+      - appnet
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints: 
+          - node.role == manager
+      labels:
+        - "traefik.backend.loadbalancer.stickiness=false"
+        - "traefik.backend.loadbalancer.swarm=false"
+        - "traefik.backend.loadbalancer.method=drr"
+        - "traefik.backend=apache"
+        - "traefik.docker.network=appnet"
+        - "traefik.frontend.entryPoints=http,https"
+        - "traefik.enable=true"
+        - "traefik.frontend.rule=PathPrefixStrip: /apache"
+        - "traefik.port=80"
+
+  proxy:
+    image: traefik:1.6.3-alpine
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /c/Users/r_kar/traefik/config/traefik-nohttpsforcing-noacme.toml:/traefik.toml
+      - /c/Users/r_kar/traefik/certs/:/certs/
+    networks:
+      - appnet
+    ports:
+      - target: 80
+        published: 80
+        mode: host
+      - target: 443
+        published: 443
+        mode: host
+      - target: 8080
+        published: 8080
+        mode: host
+    deploy:
+      mode: global
+      placement:
+        constraints:
+          - node.role == manager
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+networks:
+  appnet:
+    external: true
