@@ -1,0 +1,26 @@
+logLevel = "DEBUG"
+defaultEntryPoints = ["https","http"]
+
+[api]
+dashboard = true
+
+[entryPoints]
+  [entryPoints.http]
+  address = ":80"
+    [entryPoints.http.redirect]
+    entryPoint = "https"
+  [entryPoints.https]
+  address = ":443"
+  [entryPoints.https.tls]
+    [[entryPoints.https.tls.certificates]]
+      certFile = "/certs/localhost.crt"
+      keyFile = "/certs/localhost.key"
+
+[retry]
+
+[docker]
+endpoint = "unix:///var/run/docker.sock"
+domain = "docker.localhost"
+watch = true
+swarmMode = true
+exposedbydefault = false
